@@ -3,6 +3,10 @@
 By: Jeff Hoogland (JeffHoogland@Linux.com)
 Started: 7/12/15
 
+Returning data from extracted to .cfg form:
+
+eet -e file.cfg config file.txt 1
+
 """
 
 from efl import ecore
