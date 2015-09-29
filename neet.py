@@ -102,9 +102,9 @@ class EETFile(object):
         
     def _valueToValue(self, ourVal):
         """Internal method used for converting EET value to python value"""
-        if ourVal.type in ["uint", "int", "double"]:
+        if ourVal.type in ["uint", "int"]:
             return int(ourVal.data)
-        elif ourVal.type == "float":
+        elif ourVal.type in ["float", "double"]:
             return float(ourVal.data)
         else:
             return ourVal.data
