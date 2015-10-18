@@ -6,4 +6,4 @@ Requires:
 
 Credits:
 - [Jeff Hoogland](http://www.jeffhoogland.com/)
-
+- [Jimmy Campbell](https://github.com/jcampbelly)
