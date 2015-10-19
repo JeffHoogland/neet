@@ -25,31 +25,37 @@ TMPDIR = tempfile.gettempdir()
 class EETFile(object):
     def __init__(self):
         self.data = {}
+        self.ecfgParse = None
+        self.tmpFile = None
+        self.cfgName = None
+        self.eetFilePath = None
         
     def importFile(self, eetFile):
         """This method decompiles a binary EET file using the eet system command"""
+        self.eetFilePath = eetFile
         self.cfgName = eetFile.split("/")[-1]
+        self.tmpFile = eetFile.split("/")[-1]
         
         nextInt = 0
         
         #ensure we aren't overwriting other CFGs that are open for writing
-        while os.path.isfile("%s/%s%s.txt"%(TMPDIR, self.cfgName, nextInt)):
+        while os.path.isfile("%s/%s%s.txt"%(TMPDIR, self.tmpFile, nextInt)):
             nextInt += 1
         
-        self.cfgName = "%s%s.txt"%(self.cfgName, nextInt)
+        self.tmpFile = "%s%s.txt"%(self.tmpFile, nextInt)
         
         #print eetFile
-        #print "%s/%s"%(TMPDIR, self.cfgName)
-        cmd = ecore.Exe("eet -d %s config %s/%s"%(eetFile, TMPDIR, self.cfgName))
+        #print "%s/%s"%(TMPDIR, self.tmpFile)
+        cmd = ecore.Exe("eet -d %s config %s/%s"%(eetFile, TMPDIR, self.tmpFile))
 
         #Wait while the file is extracted
-        while not os.path.isfile("%s/%s"%(TMPDIR, self.cfgName)):
+        while not os.path.isfile("%s/%s"%(TMPDIR, self.tmpFile)):
             time.sleep(0.5)
         
-        extractFile = "%s/%s"%(TMPDIR, self.cfgName)
+        extractFile = "%s/%s"%(TMPDIR, self.tmpFile)
         
         #Prints the output of the file if we want to see that for debugging
-        #print "%s/%s"%(TMPDIR, self.cfgName)
+        #print "%s/%s"%(TMPDIR, self.tmpFile)
         #for l in tmpFile.readlines():
         #    print l
         
@@ -57,54 +63,77 @@ class EETFile(object):
         
     def readExtract(self, extractFile):
         """This method reads a decompiled EET file
-            and turns it into a python dictonary"""
+            and turns it into a python object"""
         
         with open(extractFile) as f:
             extractText = f.read()
         
-        extractCfg = ecfg.ECfg(extractText)
-        
-        if type(extractCfg.root) == Struct:
-            self.data = self._structToDict(extractCfg.root)
-        
-        print self.data
-        
-    def _structToDict(self, ourStruct):
-        """Internal method used for converting EET structures to python dict"""
-        tempDict = {}
-        
-        for li in ourStruct.lists:
-            tempDict[li.name] = self._listToList(li)
-        
-        for val in ourStruct.values:
-            tempDict[val.name] = self._valueToValue(val)
-        
-        return tempDict
+        self.ecfgParse = extractCfg = ecfg.ECfg(extractText)
     
-    def _listToList(self, ourList):
-        """Internal method used for converting EET list to python list"""
-        tempList = []
+    def readValue(self, valuePath=None):
+        """example input:
+            (("list", "modules"), ("item", "E_Config_Module",  "name" , "gadman"))
+            (("list", "themes"), ("item", "E_Config_Theme",  "category" , "theme"), ("value", "file"))"""
         
-        for i in ourList.items:
-            tmpData = None
-            if type(i) == Struct:
-                tmpData = self._structToDict(i)
-            elif type(i) == List:
-                tmpData = self._listToList(i)
-            elif type(i) == Value:
-                tmpData = self._valueToValue(i)
-            else:
-                print "Found type %s. Not sure why."%type(i)
+        '''for li in self.ecfgParse.root.lists:
+            if li.name == "themes":
+                for i in li.items:
+                    if i.name == "E_Config_Theme":
+                        for v in i.values:
+                            print v.name
+                            print v.data'''
+        
+        currentLevel = self.ecfgParse.root
+        
+        for x in valuePath:
+            if x[0] == "list":
+                currentLevel = self._returnList(currentLevel, x[1])
+            elif x[0] == "item":
+                currentLevel = self._returnItem(currentLevel, x[1], x[2], x[3])
+            elif x[0] == "value":
+                currentLevel = self._returnValue(currentLevel, x[1])
             
-            tempList.append(tmpData)
+            if not currentLevel:
+                break
         
-        return tempList
-        
-    def _valueToValue(self, ourVal):
-        """Internal method used for converting EET value to python value"""
-        if ourVal.type in ["uint", "int"]:
-            return int(ourVal.data)
-        elif ourVal.type in ["float", "double"]:
-            return float(ourVal.data)
+        return currentLevel
+    
+    def _returnList(self, currentObj, seekName):
+        for li in currentObj.lists:
+            if li.name == seekName:
+                return li
+        return False
+    
+    def _returnItem(self, currentObj, seekName, seekValName, seekVal):
+        for it in currentObj.items:
+            if it.name == seekName:
+                for val in it.values:
+                    if val.name == seekValName and val.data == seekVal:
+                        return it
+        return False
+    
+    def _returnValue(self, currentObj, seekName):
+        for val in currentObj.values:
+            if val.name == seekName:
+                return val
+        return False
+    
+    def saveData(self, saveAs=False):
+        """Writes the data back into an eet file"""
+        if saveAs:
+            saveLocation = saveAs
+            self.eetFilePath = saveAs
         else:
-            return ourVal.data
+            saveLocation = self.eetFilePath
+
+        # save the new config
+        with open(self.tmpFile, 'w') as f:
+            f.write(self.ecfgParse.text())
+        
+        #if save location exists create a backup before writing over it
+        if os.path.isfile(saveLocation):
+            if os.path.isfile("%s.old"%saveLocation):
+                os.remove("%s.old"%saveLocation)
+            os.rename(saveLocation, "%s.old"%saveLocation)
+        
+        cmd = ecore.Exe("eet -e %s config %s 1"%(saveLocation, self.tmpFile))
