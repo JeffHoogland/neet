@@ -30,7 +30,7 @@ class EETFile(object):
         self.cfgName = None
         self.eetFilePath = None
         
-    def importFile(self, eetFile):
+    def importFile(self, eetFile, decompArg="-d"):
         """This method decompiles a binary EET file using the eet system command"""
         self.eetFilePath = eetFile
         self.cfgName = eetFile.split("/")[-1]
@@ -46,7 +46,7 @@ class EETFile(object):
         
         #print eetFile
         #print "%s/%s"%(TMPDIR, self.tmpFile)
-        cmd = ecore.Exe("eet -d %s config %s/%s"%(eetFile, TMPDIR, self.tmpFile))
+        cmd = ecore.Exe("eet %s %s config %s/%s"%(decompArg, eetFile, TMPDIR, self.tmpFile))
 
         #Wait while the file is extracted
         while not os.path.isfile("%s/%s"%(TMPDIR, self.tmpFile)):
@@ -59,7 +59,11 @@ class EETFile(object):
         #for l in tmpFile.readlines():
         #    print l
         
-        self.readExtract(extractFile)
+        if decompArg == "-d":
+            self.readExtract(extractFile)
+        else:
+            with open(extractFile) as f:
+                self.ecfgParse = f.read()
         
     def readExtract(self, extractFile):
         """This method reads a decompiled EET file
@@ -83,7 +87,10 @@ class EETFile(object):
                             print v.name
                             print v.data'''
         
-        currentLevel = self.ecfgParse.root
+        if isinstance(self.ecfgParse, basestring):
+            return self.ecfgParse
+        else:
+            currentLevel = self.ecfgParse.root
         
         for x in valuePath:
             if x[0] == "list":
@@ -140,7 +147,7 @@ class EETFile(object):
             while os.path.isfile(saveLocation):
                 time.sleep(0.5)
         
-        print "writing %s from %s/%s"%(saveLocation, TMPDIR, self.tmpFile)
+        #print "writing %s from %s/%s"%(saveLocation, TMPDIR, self.tmpFile)
         
         cmd = ecore.Exe("eet -e %s config %s/%s 1"%(saveLocation, TMPDIR, self.tmpFile))
         

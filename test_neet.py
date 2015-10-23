@@ -1,8 +1,9 @@
 
 import neet
 import sys
+import os
 
-#print sys.argv
+'''#print sys.argv
 myEetFile = neet.EETFile()
 myEetFile.importFile(sys.argv[1])
 #myEetFile.readExtract(sys.argv[1])
@@ -16,5 +17,11 @@ print myVal.data
 
 myVal.data = "Derppy.edj"
 
-myEetFile.saveData()
+myEetFile.saveData()'''
+
+eProfileFile = neet.EETFile()
+eProfileFile.importFile("%s/.e/e/config/profile.cfg"%os.path.expanduser("~"), "-x")
+eProfile = eProfileFile.readValue()
+
+print eProfile
 
