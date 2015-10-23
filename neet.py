@@ -127,7 +127,7 @@ class EETFile(object):
             saveLocation = self.eetFilePath
 
         # save the new config
-        with open(self.tmpFile, 'w') as f:
+        with open("%s/%s"%(TMPDIR, self.tmpFile), 'w') as f:
             f.write(self.ecfgParse.text())
         
         #if save location exists create a backup before writing over it
@@ -136,4 +136,4 @@ class EETFile(object):
                 os.remove("%s.old"%saveLocation)
             os.rename(saveLocation, "%s.old"%saveLocation)
         
-        cmd = ecore.Exe("eet -e %s config %s 1"%(saveLocation, self.tmpFile))
+        cmd = ecore.Exe("eet -e %s config %s/%s 1"%(saveLocation, TMPDIR, self.tmpFile))
