@@ -136,4 +136,7 @@ class EETFile(object):
                 os.remove("%s.old"%saveLocation)
             os.rename(saveLocation, "%s.old"%saveLocation)
         
+        while os.path.isfile(saveLocation):
+            time.sleep(0.5)
+        
         cmd = ecore.Exe("eet -e %s config %s/%s 1"%(saveLocation, TMPDIR, self.tmpFile))
