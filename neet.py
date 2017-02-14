@@ -105,6 +105,9 @@ class EETFile(object):
         
         return currentLevel
     
+    def newValue(self, valueName, valueType, valueData):
+        self.ecfgParse.root.values.append(ecfg.Value(valueName, valueType, valueData))
+    
     def _returnList(self, currentObj, seekName):
         for li in currentObj.lists:
             if li.name == seekName:
